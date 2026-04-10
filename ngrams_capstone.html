@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N-Gram Next-Word Predictor — Capstone Project</title>
+<style>
+  :root {
+    --font-sans: Georgia, 'Times New Roman', serif;
+    --font-ui: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --bg: #faf8f4;
+    --surface: #ffffff;
+    --surface2: #f5f3ef;
+    --border: #e0d8cc;
+    --border-strong: #c8bfb0;
+    --accent: #c41e3a;
+    --accent2: #1a4a8a;
+    --text: #2a2018;
+    --text-muted: #7a6a58;
+    --text-heading: #1a1008;
+    --code-bg: #f0ede8;
+    --tag-bg: #eef4ee;
+    --tag-text: #2a6a2a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15.5px;
+    line-height: 1.8;
+    min-height: 100vh;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 230px 1fr;
+    min-height: 100vh;
+  }
+
+  nav {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 2rem 0;
+  }
+
+  .nav-logo {
+    padding: 0 1.5rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem;
+  }
+
+  .nav-logo span {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .nav-logo p {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  nav a {
+    display: block;
+    padding: 4px 1.5rem;
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  nav a:hover { color: var(--accent2); }
+  nav a.section {
+    color: var(--text-heading);
+    font-weight: 600;
+    margin-top: 1rem;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  nav a.sub { padding-left: 2.5rem; font-size: 12px; }
+
+  main {
+    padding: 3.5rem 4.5rem;
+    max-width: 880px;
+  }
+
+  .doc-header {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid var(--text-heading);
+  }
+
+  .doc-header .eyebrow {
+    font-family: var(--font-ui);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 {
+    font-family: var(--font-sans);
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+  }
+
+  .accent-rule {
+    width: 48px;
+    height: 3px;
+    background: var(--accent);
+    margin: 0.75rem 0 0;
+  }
+
+  section { margin-bottom: 3rem; }
+
+  h2 {
+    font-family: var(--font-sans);
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    letter-spacing: -0.02em;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-strong);
+    line-height: 1.2;
+  }
+
+  h3 {
+    font-family: var(--font-sans);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin: 2rem 0 0.75rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h4 {
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 1.5rem 0 0.6rem;
+  }
+
+  p { margin-bottom: 0.85rem; }
+
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .module-tag {
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 10px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    border: 1px solid #c0dac0;
+  }
+
+  .module-tag.std { background: #eef2f8; color: #1a4a8a; border-color: #b0c8e8; }
+  .module-tag.todo { background: #fdf0f0; color: #8a1a1a; border-color: #e8b0b0; }
+
+  .io-strip {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .io-item {
+    font-family: var(--font-ui);
+    font-size: 11.5px;
+    padding: 4px 12px;
+    border-radius: 3px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .io-item strong { color: var(--accent); margin-right: 5px; font-weight: 700; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.5rem;
+    font-family: var(--font-ui);
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 2px solid var(--border-strong);
+  }
+
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  td code { font-size: 12px; }
+  tr:last-child td { border-bottom: none; }
+  td a { color: var(--accent2); text-decoration: none; font-size: 12px; }
+  td a:hover { text-decoration: underline; }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 0.75rem 0 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #3a2a18;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #5a1a1a;
+    border: 1px solid var(--border);
+  }
+
+  pre code { background: none; padding: 0; font-size: inherit; border: none; color: inherit; }
+
+  ul, ol {
+    padding-left: 1.5rem;
+    margin-bottom: 0.85rem;
+  }
+
+  li { margin-bottom: 0.35rem; }
+  li strong { color: var(--text-heading); }
+
+  .step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    font-family: var(--font-ui);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--surface);
+    background: var(--accent);
+    border-radius: 3px;
+    padding: 2px 7px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    letter-spacing: 0.04em;
+  }
+
+  .step-content { flex: 1; }
+  .step-content p { margin-bottom: 0.4rem; }
+  .step-content ul { margin-top: 0.3rem; }
+
+  .algo {
+    background: #f5f0e8;
+    border: 1px solid var(--border-strong);
+    border-left: 3px solid var(--accent2);
+    border-radius: 0 4px 4px 0;
+    padding: 1rem 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.9;
+    color: #1a2a4a;
+    margin: 0.75rem 0 1.25rem;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  .toc-list {
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+    font-family: var(--font-ui);
+  }
+
+  .toc-list li { margin-bottom: 0.35rem; }
+  .toc-list ol { margin-top: 0.35rem; padding-left: 1.5rem; }
+  .toc-list a { color: var(--accent2); text-decoration: none; font-size: 14px; }
+  .toc-list a:hover { text-decoration: underline; }
+  .toc-list ol a { font-size: 13px; color: var(--text-muted); }
+
+  .eval-item {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    margin-bottom: 0.45rem;
+    font-size: 14px;
+    font-family: var(--font-ui);
+  }
+
+  .eval-item::before {
+    content: '–';
+    color: var(--accent);
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  .note {
+    background: #fdf8ec;
+    border: 1px solid #e8d8a0;
+    border-left: 3px solid #c8a020;
+    border-radius: 0 4px 4px 0;
+    padding: 0.75rem 1rem;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: #5a4010;
+    margin: 0.75rem 0 1.25rem;
+  }
+
+  .note strong { color: #8a5010; }
+
+  .std-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent2);
+    border-radius: 0 0 6px 6px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .std-card h4 { margin-top: 0.25rem; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav>
+    <div class="nav-logo">
+      <span>ADI Egypt</span>
+      <p>AI Training Program</p>
+    </div>
+    <a href="#toc" class="section">Table of Contents</a>
+    <a href="#overview" class="section">1. Overview</a>
+    <a href="#dataset" class="section">2. Dataset</a>
+    <a href="#tooling" class="section">3. Tooling</a>
+    <a href="#coding" class="section">4. Coding Instructions</a>
+    <a href="#coding-setup" class="sub">4.1 Setup</a>
+    <a href="#coding-design" class="sub">4.2 Design</a>
+    <a href="#structure" class="section">5. Code Structure</a>
+    <a href="#modules" class="section">6. Modules</a>
+    <a href="#standard" class="sub">6.0 Standard Parts</a>
+    <a href="#m1" class="sub">6.1 Data Prep</a>
+    <a href="#m2" class="sub">6.2 Model</a>
+    <a href="#m3" class="sub">6.3 Inference</a>
+    <a href="#m4" class="sub">6.4 CLI</a>
+    <a href="#m5" class="sub">6.5 UI (extra credit)</a>
+    <a href="#deliverable" class="section">7. Deliverables</a>
+    <a href="#milestones" class="sub">Milestones</a>
+    <a href="#eval" class="section">8. Project Evaluation</a>
+    <a href="#extracredit" class="section">9. Extra Credit</a>
+    <a href="#ec-smoothing" class="sub">9.1 Smoothing</a>
+    <a href="#ec-ui" class="sub">9.2 Streamlit UI</a>
+    <a href="#ec-exceptions" class="sub">9.3 Exception Handling</a>
+    <a href="#ec-logging" class="sub">9.4 Logging</a>
+    <a href="#ec-evaluator" class="sub">9.5 Model Evaluator</a>
+    <a href="#ec-testing" class="sub">9.6 Unit Tests</a>
+    <a href="#appendix" class="section">Appendices</a>
+    <a href="#appendix-di" class="sub">A — Dependency Injection</a>
+    <a href="#appendix-testing" class="sub">B — Unit Testing</a>
+    <a href="#appendix-exceptions" class="sub">C — Exception Handling</a>
+    <a href="#appendix-logging" class="sub">D — Logging</a>
+  </nav>
+
+  <!-- Main -->
+  <main>
+
+    <div class="doc-header">
+      <div class="eyebrow">ADI Egypt &nbsp;·&nbsp; AI Training Program &nbsp;·&nbsp; Capstone Project</div>
+      <h1>N-Gram Next-Word Predictor</h1>
+      <div class="accent-rule"></div>
+    </div>
+
+    <!-- TOC -->
+    <section id="toc">
+      <h2>Table of Contents</h2>
+      <ol class="toc-list">
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#dataset">Dataset</a></li>
+        <li><a href="#tooling">Tooling</a></li>
+        <li><a href="#coding">General Coding Instructions</a>
+          <ol>
+            <li><a href="#coding-setup">Setup</a></li>
+            <li><a href="#coding-design">Design</a></li>
+          </ol>
+        </li>
+        <li><a href="#structure">Code Structure</a></li>
+        <li><a href="#modules">Modules</a>
+          <ol>
+            <li><a href="#standard">Standard Parts</a></li>
+            <li><a href="#m1">Data Prep</a></li>
+            <li><a href="#m2">Model</a></li>
+            <li><a href="#m3">Inference</a></li>
+            <li><a href="#m4">CLI</a></li>
+            <li><a href="#m5">UI (extra credit)</a></li>
+          </ol>
+        </li>
+        <li><a href="#deliverable">Deliverables</a>
+          <ol><li><a href="#milestones">Milestones</a></li></ol>
+        </li>
+        <li><a href="#eval">Project Evaluation</a></li>
+        <li><a href="#extracredit">Extra Credit</a>
+          <ol>
+            <li><a href="#ec-smoothing">Smoothing</a></li>
+            <li><a href="#ec-ui">Streamlit UI</a></li>
+            <li><a href="#ec-exceptions">Exception Handling</a></li>
+            <li><a href="#ec-logging">Logging</a></li>
+            <li><a href="#ec-evaluator">Model Evaluator</a></li>
+            <li><a href="#ec-testing">Unit Tests</a></li>
+          </ol>
+        </li>
+        <li><a href="#appendix">Appendices</a>
+          <ol type="A">
+            <li><a href="#appendix-di">Dependency Injection</a></li>
+            <li><a href="#appendix-testing">Unit Testing</a></li>
+            <li><a href="#appendix-exceptions">Exception Handling</a></li>
+            <li><a href="#appendix-logging">Logging</a></li>
+          </ol>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Overview -->
+    <section id="overview">
+      <h2>1. Overview</h2>
+      <p>This capstone project consolidates the Python programming, software engineering, and AI fundamentals covered in the course. You will build a next-word prediction system from scratch using an n-gram language model — a statistical approach to AI.</p>
+
+      <p>The project is structured as four core modules plus one optional extra credit module: data preparation, model training, inference, and a CLI. A Streamlit UI is available as an optional extra credit module.</p>
+
+      <p>The corpus is four Sherlock Holmes novels by Arthur Conan Doyle, sourced from Project Gutenberg. The model is trained on all four novels. A fifth novel is used as a held-out evaluation corpus by the Model Evaluator extra credit module. At inference time, the system takes the last <code>NGRAM_ORDER − 1</code> words typed by the user and returns the top-k most probable next words using an n-gram model with backoff to lower orders when the context is unseen. The primary deliverable is a CLI; a Streamlit UI is available as extra credit.</p>
+
+      <p>The aim is not to test you, but to build on your Python training and teach you how to develop a real-world programming project. Professional habits — tooling, code structure, documentation, and testing — matter as much as algorithmic correctness, and this project enforces both.</p>
+
+      <p><strong>Reference:</strong> Chen, S. F., &amp; Goodman, J. (1999). An empirical study of smoothing techniques for language modeling. <em>Computer Speech &amp; Language, 13</em>(4), 359–394. <a href="https://people.eecs.berkeley.edu/~klein/cs294-5/chen_goodman.pdf" target="_blank">https://people.eecs.berkeley.edu/~klein/cs294-5/chen_goodman.pdf</a></p>
+    </section>
+
+    <!-- Dataset -->
+    <section id="dataset">
+      <h2>2. Dataset</h2>
+      <p><strong>Author:</strong> Arthur Conan Doyle — Sherlock Holmes fiction.<br>
+      <strong>Source:</strong> Project Gutenberg (plain text <code>.txt</code>).</p>
+
+      <h4>Training Corpus</h4>
+      <table>
+        <thead><tr><th>Book</th><th>Gutenberg ID</th><th>URL</th></tr></thead>
+        <tbody>
+          <tr><td>The Adventures of Sherlock Holmes</td><td>1661</td><td><a href="https://www.gutenberg.org/files/1661/1661-0.txt" target="_blank">1661-0.txt</a></td></tr>
+          <tr><td>The Memoirs of Sherlock Holmes</td><td>834</td><td><a href="https://www.gutenberg.org/files/834/834-0.txt" target="_blank">834-0.txt</a></td></tr>
+          <tr><td>The Return of Sherlock Holmes</td><td>108</td><td><a href="https://www.gutenberg.org/files/108/108.txt" target="_blank">108.txt</a></td></tr>
+          <tr><td>The Hound of the Baskervilles</td><td>2852</td><td><a href="https://www.gutenberg.org/files/2852/2852-0.txt" target="_blank">2852-0.txt</a></td></tr>
+        </tbody>
+      </table>
+
+      <div class="note"><strong>Evaluation corpus:</strong> The Valley of Fear (Gutenberg ID 3289) is used as a held-out evaluation corpus by the Model Evaluator extra credit module. The core project does not require it. If you are implementing the Evaluator, download it from <a href="https://www.gutenberg.org/files/3289/3289-0.txt" target="_blank">3289-0.txt</a> and place it in <code>data/raw/eval/</code>.</div>
+    </section>
+
+    <!-- Tooling -->
+    <section id="tooling">
+      <h2>3. Tooling</h2>
+      <ul>
+        <li>The project must be developed in <strong>VS Code</strong>.</li>
+        <li>Create and activate an <strong>Anaconda environment</strong> for the project. Select it as the Python interpreter in VS Code.</li>
+        <li>The project must be published as a <strong>public GitHub repository</strong>.</li>
+        <li>Use <strong>Markdown</strong> for <code>README.md</code> and any project notes.</li>
+      </ul>
+    </section>
+
+    <!-- General Coding Instructions -->
+    <section id="coding">
+      <h2>4. General Coding Instructions</h2>
+
+      <h3 id="coding-setup">4.1 Setup</h3>
+      <ul>
+        <li><strong>Apply tooling, code structure, and standard parts from day one.</strong> The VS Code environment, Git workflow, folder structure (§5), and standard files — <code>README.md</code>, <code>requirements.txt</code>, <code>.gitignore</code>, and <code>config/.env</code> — must be in place before writing any code, not added at the end.</li>
+        <li><strong>Git workflow.</strong> The first commit must be the empty project structure — folders, placeholder files, and all standard parts — before any code is written. Commit regularly as you complete each step, not all at once at the end. Follow the milestone branch structure in §7.</li>
+        <li><strong>Load environment variables at startup.</strong> Use the <code>python-dotenv</code> library. Call <code>load_dotenv()</code> at the top of <code>main.py</code> before reading any path or configuration value. All other modules receive config values as arguments — they do not call <code>load_dotenv()</code> themselves.</li>
+        <li><strong>Every module file must have a runnable entry point.</strong> Each <code>.py</code> file in <code>src/</code> must include a <code>main()</code> function and an <code>if __name__ == "__main__"</code> block so the module can be run and tested in isolation during development.</li>
+        <li><strong>Build on a small sample first.</strong> During development, run all modules on the first 100 sentences of the training corpus only. Once the full pipeline works end-to-end on the sample, re-run on the full corpus. This keeps iteration fast and avoids long waits while debugging.</li>
+        <li><strong>Do not use AI-assisted programming tools</strong> (e.g. GitHub Copilot, ChatGPT, Claude) anywhere in the core modules. AI tools are permitted for extra credit modules only.</li>
+      </ul>
+
+      <h3 id="coding-design">4.2 Design</h3>
+      <ul>
+        <li><strong>Docstrings on all classes and methods.</strong> Every class docstring must describe the module's responsibility. Every method docstring must describe what the method does, its parameters, and its return value.</li>
+        <li><strong>No global variables.</strong> All state is passed via function arguments or class attributes.</li>
+        <li><strong>No code duplication.</strong> Each piece of logic must exist in exactly one place. If two modules need the same behavior, one calls the other — never copy code between files.</li>
+        <li><strong>Normalization must be consistent.</strong> Any text processed at inference time must pass through <code>Normalizer.normalize()</code> in the same order as training data — otherwise lookups will silently fail. Do not re-implement normalization in any other module. Note: <code>Normalizer</code> has two modes of use — in Module 1 it processes whole files; in Module 3 it normalizes single input strings. The same methods are called in both cases.</li>
+        <li><strong>Dependency injection.</strong> <code>NGramModel</code> and <code>Normalizer</code> are instantiated once in <code>main()</code> and passed into <code>Predictor</code>. No class creates its own dependencies internally. See <a href="#appendix-di">Appendix A</a> for a full explanation.</li>
+      </ul>
+    </section>
+
+    <!-- Code Structure -->
+    <section id="structure">
+      <h2>5. Code Structure</h2>
+      <pre>ngram-predictor/
+├── config/
+│   └── .env
+├── data/
+│   ├── raw/
+│   │   ├── train/          # Four training books (.txt)
+│   │   └── eval/           # One evaluation book (.txt) — extra credit only
+│   ├── processed/
+│   │   ├── train_tokens.txt
+│   │   └── eval_tokens.txt # Extra credit only
+│   └── model/
+│       ├── model.json      # Generated — do not commit
+│       └── vocab.json      # Generated — do not commit
+├── src/
+│   ├── data_prep/
+│   │   └── normalizer.py      # Normalizer class
+│   ├── model/
+│   │   └── ngram_model.py     # NGramModel class
+│   ├── inference/
+│   │   └── predictor.py       # Predictor class
+│   ├── ui/
+│   │   └── app.py             # PredictorUI class          # Extra credit
+│   └── evaluation/
+│       └── evaluator.py       # Evaluator class            # Extra credit
+├── main.py                    # Single entry point — CLI and wiring
+├── tests/
+│   ├── test_data_prep.py      # Extra credit
+│   ├── test_model.py          # Extra credit
+│   ├── test_inference.py      # Extra credit
+│   ├── test_ui.py             # Extra credit
+│   └── test_evaluation.py     # Extra credit
+├── .gitignore
+├── requirements.txt
+└── README.md</pre>
+
+      <h4>Module Call Chain</h4>
+      <p><code>main.py</code> at the root of the repository is the single entry point for the project. It loads configuration, instantiates all objects in the correct order, and calls each module in sequence. Do not instantiate <code>NGramModel</code> more than once per pipeline run.</p>
+      <pre>main()                                   # CLI loop lives here
+  │
+  ├── Normalizer()                         ← used by Data Prep, Inference, and Evaluator (extra credit)
+  │
+  ├── NGramModel()
+  │     ├── .build_vocab()
+  │     ├── .build_counts_and_probabilities()
+  │     ├── .save_model() / .load()
+  │     └── .lookup()                      ← called by Predictor and Evaluator (extra credit)
+  │
+  ├── Predictor(model: NGramModel, normalizer: Normalizer)
+  │     └── .predict_next()
+  │
+  ├── Evaluator(model: NGramModel, normalizer: Normalizer)   ← extra credit only
+  │     └── .run()
+  │
+  └── PredictorUI(predictor: Predictor)    ← extra credit only
+        └── .run()</pre>
+    </section>
+
+    <!-- Modules -->
+    <section id="modules">
+      <h2>6. Modules</h2>
+      <p>The project is split into four modules, plus one optional extra credit module.</p>
+
+      <!-- Standard Parts -->
+      <div id="standard">
+        <h3>6.0 Standard Parts</h3>
+        <p>Every professional Python project includes a set of standard files and folders that make it reproducible, portable, and understandable to anyone who clones the repository. This project must include all of the following.</p>
+
+        <div class="std-card">
+          <div class="module-tag std">Standard</div>
+          <h4>README.md</h4>
+          <p>The entry point for anyone who opens the repository. Without it, no one knows what the project does, how to install it, or how to run it.</p>
+          <p>Must include:</p>
+          <ul>
+            <li><strong>Project title and description</strong> — one paragraph describing what the project does.</li>
+            <li><strong>Requirements</strong> — Python version and a note to install dependencies via <code>requirements.txt</code>.</li>
+            <li><strong>Setup</strong> — clone the repo; create and activate an Anaconda environment; install dependencies; populate <code>config/.env</code>; download raw <code>.txt</code> files into the correct folders.</li>
+            <li><strong>Usage</strong> — step-by-step commands to run each step via <code>main.py --step</code>. If you implemented the Streamlit UI, include the command to launch it separately.</li>
+            <li><strong>Project Structure</strong> — the folder tree matching the Code Structure section.</li>
+          </ul>
+        </div>
+
+        <div class="std-card">
+          <div class="module-tag std">Standard</div>
+          <h4>requirements.txt</h4>
+          <p>Specifies the exact versions of all third-party libraries the project depends on. This ensures anyone running the project installs the same environment and gets the same results. Without it, library version mismatches cause silent bugs or crashes.</p>
+          <p>List every third-party library imported anywhere in the project with its pinned version. Standard library modules (e.g. <code>json</code>, <code>os</code>, <code>re</code>) do not need to be listed. If you implement extra credit modules, include their libraries too (e.g. <code>streamlit</code>, <code>pytest</code>).</p>
+          <pre>nltk==3.8.1
+python-dotenv==1.0.0
+# Add extra credit libraries below if implemented
+# streamlit==1.35.0
+# pytest==8.2.0</pre>
+        </div>
+
+        <div class="std-card">
+          <div class="module-tag std">Standard</div>
+          <h4>config/.env</h4>
+          <p>Separates configuration from code. File paths, thresholds, and environment-specific values belong here — not hardcoded inside the source files. This makes the project portable: anyone can clone the repo and point it at their own data by editing one file.</p>
+          <p>No file path should be hardcoded anywhere in the code.</p>
+          <pre>TRAIN_RAW_DIR=data/raw/train/
+EVAL_RAW_DIR=data/raw/eval/
+TRAIN_TOKENS=data/processed/train_tokens.txt
+EVAL_TOKENS=data/processed/eval_tokens.txt
+MODEL=data/model/model.json
+VOCAB=data/model/vocab.json
+UNK_THRESHOLD=3
+TOP_K=3
+NGRAM_ORDER=4
+# LOG_LEVEL=INFO     # Optional — required for Logging extra credit (§9.4)</pre>
+          <p>Place the four training books in <code>data/raw/train/</code>. The code loads all <code>.txt</code> files found in the folder. <code>EVAL_RAW_DIR</code> and <code>EVAL_TOKENS</code> are used only by the Model Evaluator extra credit module — the core project does not use the evaluation corpus.</p>
+        </div>
+
+        <div class="std-card">
+          <div class="module-tag std">Standard</div>
+          <h4>.gitignore</h4>
+          <p>Prevents large or generated files from being committed to the repository. The training data and model artifacts can be hundreds of megabytes — committing them makes the repository unusable.</p>
+          <p>At minimum, exclude the following:</p>
+          <pre>data/
+*.json
+__pycache__/
+*.pyc
+.env</pre>
+          <p>Note: <code>config/.env</code> is excluded because it may contain local paths. Document the required variables and their format in <code>README.md</code> so anyone cloning the repo knows what to fill in.</p>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- Module 1 -->
+      <div id="m1">
+        <h3>6.1 Module 1 — Data Prep</h3>
+        <div class="io-strip">
+          <div class="io-item"><strong>IN</strong> Raw .txt files from Project Gutenberg</div>
+          <div class="io-item"><strong>OUT</strong> train_tokens.txt (+ eval_tokens.txt if implementing Evaluator)</div>
+        </div>
+
+        <h4>Class Structure</h4>
+        <p>Implement a <code>Normalizer</code> class in <code>src/data_prep/normalizer.py</code>. The class docstring must describe the module's responsibility: loading, cleaning, tokenizing, and saving the corpus. Each method docstring must describe what that method does, its parameters, and its return value.</p>
+        <div class="note"><strong>Dual-use class:</strong> <code>Normalizer</code> is used in two different contexts. In Module 1 (Data Prep), it processes whole raw files — loading, stripping, normalizing, tokenizing, and saving. In Module 3 (Inference), only <code>normalize(text)</code> is called on a single input string to prepare it for lookup. The same class handles both; no new normalization code should be written in Module 3.</div>
+        <table>
+          <thead><tr><th>Method</th><th>Responsibility</th></tr></thead>
+          <tbody>
+            <tr><td><code>load(folder_path)</code></td><td>Load all .txt files from a folder</td></tr>
+            <tr><td><code>strip_gutenberg(text)</code></td><td>Remove Gutenberg header and footer</td></tr>
+            <tr><td><code>lowercase(text)</code></td><td>Lowercase all text</td></tr>
+            <tr><td><code>remove_punctuation(text)</code></td><td>Remove all punctuation</td></tr>
+            <tr><td><code>remove_numbers(text)</code></td><td>Remove all numbers</td></tr>
+            <tr><td><code>remove_whitespace(text)</code></td><td>Remove extra whitespace and blank lines</td></tr>
+            <tr><td><code>normalize(text)</code></td><td>Apply all normalization steps in order: lowercase → remove punctuation → remove numbers → remove whitespace. This is the single method that other modules call to normalize text consistently.</td></tr>
+            <tr><td><code>sentence_tokenize(text)</code></td><td>Split text into a list of sentences</td></tr>
+            <tr><td><code>word_tokenize(sentence)</code></td><td>Split a single sentence into a list of tokens</td></tr>
+            <tr><td><code>save(sentences, filepath)</code></td><td>Write tokenized sentences to output file</td></tr>
+          </tbody>
+        </table>
+
+        <h4>Steps</h4>
+        <div class="step"><span class="step-num">01</span><div class="step-content"><p><strong>Load raw text</strong> — call <code>load()</code> on the training folder (<code>TRAIN_RAW_DIR</code>). Load all <code>.txt</code> files found in the folder.</p></div></div>
+        <div class="step"><span class="step-num">02</span><div class="step-content"><p><strong>Strip Gutenberg header and footer</strong></p><ul><li>Remove all text before and including: <code>*** START OF THE PROJECT GUTENBERG EBOOK ... ***</code></li><li>Remove all text from and including: <code>*** END OF THE PROJECT GUTENBERG EBOOK ... ***</code></li></ul></div></div>
+        <div class="step"><span class="step-num">03</span><div class="step-content"><p><strong>Normalize</strong> — call <code>normalize(text)</code> which applies lowercase, remove punctuation, remove numbers, and remove extra whitespace in order.</p></div></div>
+        <div class="step"><span class="step-num">04</span><div class="step-content"><p><strong>Sentence tokenize</strong> — split text into sentences; each becomes one line in the output file.</p></div></div>
+        <div class="step"><span class="step-num">05</span><div class="step-content"><p><strong>Word tokenize</strong> — call <code>word_tokenize(sentence)</code> on each sentence to split it into tokens separated by a single space.</p></div></div>
+        <div class="step"><span class="step-num">06</span><div class="step-content"><p><strong>Write output file</strong> — concatenate all training books and write to <code>train_tokens.txt</code>. Format: one sentence per line, tokens separated by spaces. If implementing the Model Evaluator extra credit, also process <code>EVAL_RAW_DIR</code> and write <code>eval_tokens.txt</code> using the same pipeline.</p></div></div>
+
+        <h4>Output Format Example</h4>
+        <pre>the adventure began on a cold november morning
+holmes examined the letter carefully and set it down</pre>
+      </div>
+
+      <hr>
+
+      <!-- Module 2 -->
+      <div id="m2">
+        <h3>6.2 Module 2 — Model</h3>
+        <div class="io-strip">
+          <div class="io-item"><strong>IN</strong> train_tokens.txt</div>
+          <div class="io-item"><strong>OUT</strong> model.json, vocab.json</div>
+        </div>
+
+        <h4>Reference Paper</h4>
+        <p>Read <strong>Section 2</strong> (MLE baseline) and <strong>Section 3.4</strong> (Katz Backoff) of the reference paper to understand the motivation for building counts at multiple n-gram orders and falling back to lower-order models when a context is unseen.</p>
+        <p>The approach implemented here is a simplified backoff — no discounting or probability redistribution as in Section 3.4. Do <strong>not</strong> implement any full smoothing techniques from Sections 3–6. Smoothing is offered as an optional extension for extra credit.</p>
+
+        <div class="note"><strong>Note:</strong> This is a prototype, not a production system. The goal is a correctly functioning model with backoff, not an optimized one. The n-gram order is set by <code>NGRAM_ORDER</code> in <code>config/.env</code> (default: 4). Build and test the counts and backoff logic to support any order from 1 up to <code>NGRAM_ORDER</code> — do not hardcode 4 anywhere in the code.</div>
+
+        <div class="note"><strong>Code hint — backoff loop:</strong> The lookup logic iterates from the highest order down to 1-gram. The shape of the loop is:
+<pre style="margin-top:0.5rem">for order in range(ngram_order, 0, -1):
+    context = words[-order + 1:]   # shrinks with each step
+    ...</pre>
+Do not copy this verbatim — understand what each line does and adapt it to your implementation.</div>
+
+        <h4>Algorithm — MLE with Stupid Backoff</h4>
+        <p>Build MLE counts at all n-gram orders from 1 up to <code>NGRAM_ORDER</code> (read from <code>config/.env</code>). At inference time, attempt the highest-order match first and fall back to lower orders if the context is unseen. The number of backoff levels is determined by <code>NGRAM_ORDER</code> — do not hardcode any specific order value in the code.</p>
+        <div class="algo">Let n = NGRAM_ORDER (e.g. 4)
+
+Try n-gram:     P(w | w₋ₙ₊₁…w₋₁) = C(w₋ₙ₊₁…w₋₁ w) / C(w₋ₙ₊₁…w₋₁)
+  → if context not seen, fall back to:
+Try (n-1)-gram: P(w | w₋ₙ₊₂…w₋₁) = C(w₋ₙ₊₂…w₋₁ w) / C(w₋ₙ₊₂…w₋₁)
+  → if context not seen, fall back to:
+  ...
+Try 2-gram:     P(w | w₋₁)        = C(w₋₁ w)        / C(w₋₁)
+  → if context not seen, fall back to:
+Try 1-gram:     P(w)              = C(w)             / C(all words)
+
+Return candidates from the first successful lookup.</div>
+
+        <h4>Steps</h4>
+        <div class="step"><span class="step-num">01</span><div class="step-content"><p><strong>Build the vocabulary</strong> — collect all unique words; replace any word appearing fewer than <code>UNK_THRESHOLD</code> times (from <code>config/.env</code>) with <code>&lt;UNK&gt;</code>; add <code>&lt;UNK&gt;</code> to the vocabulary.</p></div></div>
+        <div class="step"><span class="step-num">02</span><div class="step-content"><p><strong>Build counts at all orders</strong> — slide a window across every sentence and count all unique n-grams from 1-gram up to <code>NGRAM_ORDER</code>-gram. The number of orders is read from <code>config/.env</code>.</p></div></div>
+        <div class="step"><span class="step-num">03</span><div class="step-content"><p><strong>Compute MLE probabilities at each order</strong> — for each n-gram, divide its count by the count of its (n-1)-gram prefix. For unigrams, divide by the total word count.</p></div></div>
+        <div class="step"><span class="step-num">04</span><div class="step-content"><p><strong>Handle out-of-vocabulary words</strong> — any word in the context not found in the vocabulary must be mapped to <code>&lt;UNK&gt;</code> before lookup.</p></div></div>
+        <div class="step"><span class="step-num">05</span><div class="step-content"><p><strong>Save the model</strong> — save all probability tables as a single <code>model.json</code> with one key per order (e.g. <code>"1gram"</code> through <code>"4gram"</code> when <code>NGRAM_ORDER=4</code>).</p></div></div>
+
+        <h4>Output Format</h4>
+        <p>The example below shows <code>NGRAM_ORDER=4</code>. The number of keys in <code>model.json</code> equals <code>NGRAM_ORDER</code>.</p>
+        <pre>// vocab.json
+["the", "holmes", "said", "watson", "&lt;UNK&gt;", "..."]
+
+// model.json (example: NGRAM_ORDER=4)
+{
+  "1gram": {"the": 0.05, "holmes": 0.03, "&lt;UNK&gt;": 0.01},
+  "2gram": {"holmes said": {"watson": 0.42, "the": 0.12}},
+  "3gram": {"holmes said to": {"watson": 0.38, "me": 0.21}},
+  "4gram": {"holmes said to watson": {"i": 0.31, "and": 0.18}}
+}</pre>
+
+        <h4>Class Structure</h4>
+        <p>Implement a <code>NGramModel</code> class in <code>src/model/ngram_model.py</code>. The class docstring must describe the module's responsibility: building, storing, and exposing n-gram probability tables and backoff lookup across all orders from 1 up to <code>NGRAM_ORDER</code>. Each method docstring must describe what that method does, its parameters, and its return value.</p>
+        <table>
+          <thead><tr><th>Method</th><th>Responsibility</th></tr></thead>
+          <tbody>
+            <tr><td><code>build_vocab(token_file)</code></td><td>Build vocabulary; apply <code>UNK_THRESHOLD</code> from <code>.env</code></td></tr>
+            <tr><td><code>build_counts_and_probabilities(token_file)</code></td><td>Count all n-grams at orders 1 through <code>NGRAM_ORDER</code> and compute MLE probabilities. Probabilities depend on counts, so they are computed together to avoid hidden ordering bugs.</td></tr>
+            <tr><td><code>lookup(context)</code></td><td>Backoff lookup: try the highest-order context first, fall back to lower orders down to 1-gram. Return a dict of <code>{word: probability}</code> from the highest order that matches. Return empty dict if no match at any order. This is the single source of backoff logic in the project.</td></tr>
+            <tr><td><code>save_model(model_path)</code></td><td>Save all probability tables to <code>model.json</code></td></tr>
+            <tr><td><code>save_vocab(vocab_path)</code></td><td>Save vocabulary list to <code>vocab.json</code></td></tr>
+            <tr><td><code>load(model_path, vocab_path)</code></td><td>Load <code>model.json</code> and <code>vocab.json</code> into the instance. Called once in <code>main()</code> before passing the model to <code>Predictor</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr>
+
+      <!-- Module 3 -->
+      <div id="m3">
+        <h3>6.3 Module 3 — Inference</h3>
+        <div class="io-strip">
+          <div class="io-item"><strong>IN</strong> NGramModel instance, Normalizer instance, text string</div>
+          <div class="io-item"><strong>OUT</strong> top-k words sorted by probability</div>
+        </div>
+
+        <h4>Algorithm — Backoff Lookup</h4>
+        <div class="algo">Let n = NGRAM_ORDER (e.g. 4)
+
+Given input text, normalize it and extract the last n−1 words as context.
+
+Try n-gram:     look up context of length n−1 — highest order match
+  → if found, rank candidates by probability
+
+Try (n-1)-gram: look up context of length n−2
+  → if found, rank candidates by probability
+  ...
+Try 2-gram:     look up context of length 1
+  → if found, rank candidates by probability
+
+Try 1-gram:     look up all words by unigram probability
+
+Return top-k words from the first successful lookup.</div>
+
+        <h4>Steps</h4>
+        <div class="step"><span class="step-num">01</span><div class="step-content"><p><strong>Normalize input</strong> — call <code>Normalizer.normalize(text)</code> on the user's input string. Extract the last <code>NGRAM_ORDER − 1</code> words as context. Do not reload the model here — it is passed in via the constructor.</p></div></div>
+        <div class="step"><span class="step-num">02</span><div class="step-content"><p><strong>Map OOV words</strong> — any word in the context not found in the vocabulary is replaced with <code>&lt;UNK&gt;</code> before lookup.</p></div></div>
+        <div class="step"><span class="step-num">03</span><div class="step-content"><p><strong>Backoff lookup</strong> — call <code>NGramModel.lookup(context)</code>. The model tries the highest-order context first and falls back to lower orders automatically. Do not re-implement backoff here.</p></div></div>
+        <div class="step"><span class="step-num">04</span><div class="step-content"><p><strong>Rank and return</strong> — sort candidates by probability (highest first); return the top-<code>k</code> words, where <code>k</code> is read from <code>TOP_K</code> in <code>config/.env</code>. If no predictions are found at any order, return an empty list.</p></div></div>
+
+        <h4>Class Structure</h4>
+        <p>Implement a <code>Predictor</code> class in <code>src/inference/predictor.py</code>. The class docstring must describe the module's responsibility: accepting a pre-loaded <code>NGramModel</code> and <code>Normalizer</code> via the constructor, normalizing input text, and returning the top-k predicted next words sorted by probability. Backoff lookup is delegated to <code>NGramModel.lookup()</code>. Each method docstring must describe what that method does, its parameters, and its return value.</p>
+        <table>
+          <thead><tr><th>Method</th><th>Responsibility</th></tr></thead>
+          <tbody>
+            <tr><td><code>__init__(model, normalizer)</code></td><td>Accept a pre-loaded <code>NGramModel</code> and <code>Normalizer</code> instance. Do not load files here.</td></tr>
+            <tr><td><code>normalize(text)</code></td><td>Call <code>Normalizer.normalize(text)</code>; extract last <code>NGRAM_ORDER − 1</code> words as context</td></tr>
+            <tr><td><code>map_oov(context)</code></td><td>Replace out-of-vocabulary words with <code>&lt;UNK&gt;</code></td></tr>
+            <tr><td><code>predict_next(text, k)</code></td><td>Orchestrate normalize → map_oov → <code>NGramModel.lookup()</code> → return top-k words sorted by probability</td></tr>
+          </tbody>
+        </table>
+
+        <h4>Output Format</h4>
+        <pre>["watson", "holmes", "inspector"]</pre>
+      </div>
+
+      <hr>
+
+      <!-- Module 4 CLI -->
+      <div id="m4">
+        <h3>6.4 Module 4 — CLI</h3>
+        <div class="io-strip">
+          <div class="io-item"><strong>IN</strong> Predictor instance, text string</div>
+          <div class="io-item"><strong>OUT</strong> top-k predictions printed to terminal</div>
+        </div>
+
+        <p>The primary deliverable is a command-line interface. The user types a sequence of words and the program prints the top-k next-word predictions. The CLI is implemented in <code>main.py</code> at the root of the repository — no separate file is needed.</p>
+
+        <h4><code>main.py</code> Spec</h4>
+        <p><code>main.py</code> accepts a <code>--step</code> argument that controls which part of the pipeline to run:</p>
+        <table>
+          <thead><tr><th>Command</th><th>What it runs</th></tr></thead>
+          <tbody>
+            <tr><td><code>python main.py --step dataprep</code></td><td>Run <code>Normalizer</code> — produce <code>train_tokens.txt</code></td></tr>
+            <tr><td><code>python main.py --step model</code></td><td>Run <code>NGramModel</code> — produce <code>model.json</code> and <code>vocab.json</code></td></tr>
+            <tr><td><code>python main.py --step inference</code></td><td>Start the interactive CLI prediction loop</td></tr>
+            <tr><td><code>python main.py --step all</code></td><td>Run dataprep → model → inference in sequence</td></tr>
+          </tbody>
+        </table>
+        <p>Parse <code>--step</code> using Python's built-in <code>argparse</code> module. <code>load_dotenv()</code> must be called before any step runs.</p>
+
+        <h4>Behavior</h4>
+        <ul>
+          <li>On startup, load <code>config/.env</code>, instantiate <code>Normalizer</code> and <code>NGramModel</code>, load the model, and instantiate <code>Predictor</code>.</li>
+          <li>Enter a loop: prompt the user for input, call <code>Predictor.predict_next(text, k)</code>, and print the top-k predictions.</li>
+          <li>Exit cleanly on <code>quit</code> or <code>Ctrl+C</code>.</li>
+        </ul>
+
+        <h4>Example Session</h4>
+        <pre>$ python main.py --step inference
+
+&gt; holmes looked at
+Predictions: ['the', 'him', 'watson']
+
+&gt; the game is
+Predictions: ['afoot', 'up', 'over']
+
+&gt; quit
+Goodbye.</pre>
+
+      </div>
+
+      <hr>
+
+      <!-- Module 5 — Extra Credit -->
+      <div id="m5">
+        <h3>6.5 Module 5 — Streamlit UI <span style="font-family:var(--font-ui);font-size:12px;font-weight:400;color:var(--accent);margin-left:8px;">Extra Credit</span></h3>
+        <div class="module-tag todo">Optional</div>
+        <p>This module is optional and counts as extra credit (+5 points). It adds a browser-based interface alongside the CLI, built using <a href="https://streamlit.io" target="_blank">Streamlit</a>. AI-assisted programming tools are permitted for this module. The full class spec, layout, and behavior requirements are in <a href="#ec-ui">§9.2</a>.</p>
+      </div>
+
+    </section>
+
+    <!-- Deliverable -->
+    <section id="deliverable">
+      <h2>7. Deliverables</h2>
+      <p>Submit the public GitHub repository URL using this form: <a href="https://forms.gle/aMhJHnxwnhWswnHQ6" target="_blank">https://forms.gle/aMhJHnxwnhWswnHQ6</a></p>
+      <p><strong>Deadline:</strong> April 02, 2026 at 11:59 PM GMT+2. Late submissions will not be accepted.</p>
+
+      <div id="milestones">
+        <h3>Milestones</h3>
+        <p>Build the project incrementally. Each milestone ends with a working artifact, a sanity check, and a Git commit. Do not move to the next milestone until the current one passes its sanity check on the 100-sentence sample.</p>
+
+        <table>
+          <thead><tr><th>Milestone</th><th>Deliverable</th><th>Sanity Check</th><th>Session</th><th>Git</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>M0 — Setup</strong></td>
+              <td>Empty project structure: all folders, placeholder <code>.py</code> files, <code>README.md</code>, <code>requirements.txt</code>, <code>.gitignore</code>, <code>config/.env</code>. No logic yet.</td>
+              <td>Run <code>git log --oneline</code> and confirm first commit exists. Run <code>python main.py --help</code> without error.</td>
+              <td>1 hr</td>
+              <td>First commit on <code>main</code></td>
+            </tr>
+            <tr>
+              <td><strong>M1 — Data Prep</strong></td>
+              <td><code>Normalizer</code> working on 100 sentences. <code>train_tokens.txt</code> produced and inspected manually.</td>
+              <td>Run <code>python main.py --step dataprep</code>. Open <code>train_tokens.txt</code> and confirm: one sentence per line, all lowercase, no punctuation, no numbers.</td>
+              <td>3–4 hrs</td>
+              <td>Branch <code>data-prep</code> → merge to <code>main</code></td>
+            </tr>
+            <tr>
+              <td><strong>M2 — Model</strong></td>
+              <td><code>NGramModel</code> working on 100-sentence tokens. <code>model.json</code> and <code>vocab.json</code> produced.</td>
+              <td>Run <code>python main.py --step model</code>. Open <code>vocab.json</code> and confirm <code>&lt;UNK&gt;</code> is present. Open <code>model.json</code> and confirm one key per order up to <code>NGRAM_ORDER</code> (e.g. <code>"1gram"</code> through <code>"4gram"</code> when <code>NGRAM_ORDER=4</code>), with probability values that sum to approximately 1 within each context.</td>
+              <td>4–5 hrs</td>
+              <td>Branch <code>model</code> → merge to <code>main</code></td>
+            </tr>
+            <tr>
+              <td><strong>M3 — Inference + CLI</strong></td>
+              <td><code>Predictor</code> working end-to-end. CLI loop in <code>main.py</code> running.</td>
+              <td>Run <code>python main.py --step inference</code>. Type <code>holmes looked at</code> and confirm 3 predictions are returned. Type a nonsense phrase like <code>zzz qqq</code> and confirm the model falls back to unigram predictions rather than crashing.</td>
+              <td>3–4 hrs</td>
+              <td>Branch <code>inference</code> → merge to <code>main</code></td>
+            </tr>
+            <tr>
+              <td><strong>M4 — Full Corpus</strong></td>
+              <td>Re-run all modules on the full corpus. Verify predictions are sensible.</td>
+              <td>Run <code>python main.py --step all</code> on the full corpus. Type <code>the game is</code> and confirm <code>afoot</code> appears in the top predictions. Check that prediction quality is noticeably better than on the 100-sentence model.</td>
+              <td>1–2 hrs</td>
+              <td>Final commit on <code>main</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>The branch-per-milestone structure naturally satisfies the Git requirements: at least 10 commits and at least one branch merged into <code>main</code>.</p>
+      </div>
+    </section>
+
+    <!-- Evaluation Criteria -->
+    <section id="eval">
+      <h2>8. Project Evaluation</h2>
+
+      <p>The project is evaluated out of 100 points. Each criterion is scored as either fully met (full points) or not met (0). Proportional credit applies where noted.</p>
+
+      <table>
+        <thead>
+          <tr><th>Criterion</th><th style="width:8%;text-align:center">Points</th></tr>
+        </thead>
+        <tbody>
+
+          <tr><td colspan="2" style="background:var(--surface2);font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Project &nbsp;·&nbsp; 20 pts</td></tr>
+          <tr><td>Project runs end-to-end without errors (<code>python main.py --step all</code>)</td><td style="text-align:center">20</td></tr>
+
+          <tr><td colspan="2" style="background:var(--surface2);font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Tooling &nbsp;·&nbsp; 10 pts</td></tr>
+          <tr><td>Project developed in VS Code and published as a public GitHub repository</td><td style="text-align:center">2</td></tr>
+          <tr><td>Anaconda environment created and used</td><td style="text-align:center">3</td></tr>
+          <tr><td>At least 10 commits in the repository</td><td style="text-align:center">3</td></tr>
+          <tr><td>At least one branch merged into <code>main</code></td><td style="text-align:center">2</td></tr>
+
+          <tr><td colspan="2" style="background:var(--surface2);font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Standard Parts &nbsp;·&nbsp; 15 pts</td></tr>
+          <tr><td>Correct and complete <code>README.md</code> with all required sections</td><td style="text-align:center">5</td></tr>
+          <tr><td>Correct <code>requirements.txt</code> with all libraries pinned</td><td style="text-align:center">4</td></tr>
+          <tr><td>Correct <code>config/.env</code> with all required variables</td><td style="text-align:center">4</td></tr>
+          <tr><td>Correct <code>.gitignore</code> excluding <code>data/</code>, <code>*.json</code>, and <code>__pycache__/</code></td><td style="text-align:center">2</td></tr>
+
+          <tr><td colspan="2" style="background:var(--surface2);font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Code Structure &nbsp;·&nbsp; 25 pts</td></tr>
+          <tr><td>Repository follows the specified folder and file structure exactly</td><td style="text-align:center">10</td></tr>
+          <tr><td>No file paths or thresholds hardcoded; all loaded from <code>config/.env</code></td><td style="text-align:center">15</td></tr>
+
+          <tr><td colspan="2" style="background:var(--surface2);font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">General Coding &nbsp;·&nbsp; 20 pts</td></tr>
+          <tr><td>All classes and methods have docstrings (proportional)</td><td style="text-align:center">7</td></tr>
+          <tr><td>No global variables</td><td style="text-align:center">5</td></tr>
+          <tr><td>No code duplication — each piece of logic exists in exactly one place</td><td style="text-align:center">8</td></tr>
+
+          <tr><td colspan="2" style="background:var(--surface2);font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Design Quality &nbsp;·&nbsp; 10 pts</td></tr>
+          <tr><td>All classes and methods specified in the instructions are implemented (proportional)</td><td style="text-align:center">3</td></tr>
+          <tr><td><code>NGramModel.lookup()</code> is the single source of backoff logic — not re-implemented in any other module</td><td style="text-align:center">3</td></tr>
+          <tr><td><code>Normalizer.normalize()</code> reused in Module 3 — not re-implemented</td><td style="text-align:center">2</td></tr>
+          <tr><td>Dependency injection — <code>NGramModel</code> and <code>Normalizer</code> instantiated once in <code>main()</code> and passed in</td><td style="text-align:center">2</td></tr>
+
+          <tr style="font-weight:700;border-top:2px solid var(--border-strong);">
+            <td colspan="2" style="font-family:var(--font-ui);font-size:13px;">Total</td>
+            <td style="text-align:center;font-family:var(--font-ui);font-size:14px;">100</td>
+          </tr>
+
+          <tr><td colspan="2" style="background:var(--surface2);font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);">Extra Credit</td></tr>
+          <tr><td><a href="#ec-smoothing">Smoothing</a> — any technique from Sections 3–6 of the reference paper</td><td style="text-align:center">+5</td></tr>
+          <tr><td><a href="#ec-ui">Streamlit UI</a> — all specified <code>PredictorUI</code> methods implemented</td><td style="text-align:center">+5</td></tr>
+          <tr><td><a href="#ec-exceptions">Exception Handling</a> — specific exception types and informative messages</td><td style="text-align:center">+5</td></tr>
+          <tr><td><a href="#ec-logging">Logging</a> — <code>LOG_LEVEL</code> from <code>.env</code> with appropriate log levels</td><td style="text-align:center">+5</td></tr>
+          <tr><td><a href="#ec-evaluator">Model Evaluator</a> — correct perplexity computation on held-out corpus</td><td style="text-align:center">+5</td></tr>
+          <tr><td><a href="#ec-testing">Unit Tests</a> — per-method tests, all passing</td><td style="text-align:center">+5</td></tr>
+
+        </tbody>
+      </table>
+
+      <p style="font-family:var(--font-ui);font-size:12.5px;color:var(--text-muted);margin-top:0.75rem;">Proportional criteria are scored as: points × (items correctly implemented / total items specified).</p>
+
+    </section>
+
+    <!-- Extra Credit -->
+    <section id="extracredit">
+      <h2>9. Extra Credit</h2>
+      <p>The following extensions are optional. Each adds depth to the project and is awarded additional points on top of the base score of 100. Implement any combination — they are independent of each other.</p>
+
+      <h3 id="ec-smoothing">9.1 Smoothing</h3>
+      <p><strong>+5 points.</strong> Implement any smoothing technique from Sections 3–6 of the reference paper (e.g. Laplace add-one, Katz backoff, Jelinek-Mercer). Add a flag to <code>config/.env</code> to enable or disable smoothing so the base MLE model remains the default.</p>
+
+      <h3 id="ec-ui">9.2 Streamlit UI</h3>
+      <p><strong>+5 points.</strong> Implement the <code>PredictorUI</code> class in <code>src/ui/app.py</code> as specified in <a href="#m5">§6.5</a>. AI-assisted programming is permitted for this module. The UI must run alongside the CLI — not replace it.</p>
+
+      <h3 id="ec-exceptions">9.3 Exception Handling</h3>
+      <p><strong>+5 points.</strong> Add structured exception handling across the pipeline. See <a href="#appendix-exceptions">Appendix C</a> for a full explanation of the concept. At minimum, catch and handle the following with clear, informative error messages:</p>
+      <table>
+        <thead><tr><th>Location</th><th>Exception to catch</th><th>Useful message</th></tr></thead>
+        <tbody>
+          <tr><td><code>Normalizer.load()</code></td><td><code>FileNotFoundError</code></td><td><code>Folder not found: {path}. Check TRAIN_RAW_DIR in config/.env.</code></td></tr>
+          <tr><td><code>NGramModel.load()</code></td><td><code>FileNotFoundError</code></td><td><code>model.json not found. Run the Model module first.</code></td></tr>
+          <tr><td><code>NGramModel.load()</code></td><td><code>json.JSONDecodeError</code></td><td><code>model.json is malformed. Re-run the Model module.</code></td></tr>
+          <tr><td><code>main()</code> — env loading</td><td><code>KeyError</code></td><td><code>Missing config variable: {key}. Check config/.env.</code></td></tr>
+          <tr><td><code>Predictor.predict_next()</code></td><td>Empty input string</td><td><code>Input text is empty. Please type at least one word.</code></td></tr>
+        </tbody>
+      </table>
+      <p>Do not use bare <code>except:</code> clauses. Catch specific exception types only.</p>
+
+      <h3 id="ec-logging">9.4 Logging</h3>
+      <p><strong>+5 points.</strong> Replace all <code>print()</code> statements used for progress and debugging with Python's built-in <code>logging</code> module. See <a href="#appendix-logging">Appendix D</a> for a full explanation. Configure a log level via <code>config/.env</code>:</p>
+      <pre>LOG_LEVEL=INFO   # DEBUG, INFO, WARNING, ERROR</pre>
+      <ul>
+        <li><code>DEBUG</code> — log every n-gram count, every backoff step</li>
+        <li><code>INFO</code> — log module start/end and key stats (vocab size, total tokens)</li>
+        <li><code>WARNING</code> — log OOV words encountered at inference time</li>
+        <li><code>ERROR</code> — log caught exceptions before re-raising or exiting</li>
+      </ul>
+
+      <h3 id="ec-evaluator">9.5 Model Evaluator</h3>
+      <p><strong>+5 points.</strong> Implement the <code>Evaluator</code> class in <code>src/evaluation/evaluator.py</code> to compute perplexity on the held-out evaluation corpus. Download The Valley of Fear (Gutenberg ID 3289) and place it in <code>data/raw/eval/</code> (see §2 for the download link).</p>
+      <p>Read <strong>Section 2.1</strong> of the reference paper for the cross-entropy definition. Perplexity is 2 raised to the power of cross-entropy.</p>
+      <div class="algo">For each word wᵢ in the eval corpus:
+  Get P(wᵢ | context) via NGramModel.lookup() with backoff
+  Accumulate log₂ P(wᵢ | context)
+
+Cross-entropy H = - (1/N) × Σ log₂ P(wᵢ | context)
+Perplexity     = 2^H
+
+Where N = total number of evaluated words (skipped words excluded).</div>
+
+      <table>
+        <thead><tr><th>Method</th><th>Responsibility</th></tr></thead>
+        <tbody>
+          <tr><td><code>__init__(model, normalizer)</code></td><td>Accept a pre-loaded <code>NGramModel</code> and <code>Normalizer</code> instance</td></tr>
+          <tr><td><code>score_word(word, context)</code></td><td>Return log₂ P(word | context) via <code>NGramModel.lookup()</code>; return <code>None</code> if zero probability at all orders</td></tr>
+          <tr><td><code>compute_perplexity(eval_file)</code></td><td>Compute perplexity over the full eval corpus; print a warning if more than 20% of words are skipped</td></tr>
+          <tr><td><code>run(eval_file)</code></td><td>Orchestrate compute_perplexity → print result</td></tr>
+        </tbody>
+      </table>
+
+      <p>Add <code>--step evaluate</code> to <code>main.py</code> to run this module.</p>
+
+      <h4>Expected output</h4>
+      <pre>Perplexity: 312.48
+Words evaluated: 18,432
+Words skipped (zero probability): 204</pre>
+
+      <h3 id="ec-testing">9.6 Unit Tests</h3>
+      <p><strong>+5 points.</strong> Write unit tests for each core module using <code>pytest</code> or <code>unittest</code>. See <a href="#appendix-testing">Appendix B</a> for a full explanation of unit testing. AI-assisted programming is permitted for writing tests. Place test files in the <code>tests/</code> folder. All tests must pass.</p>
+
+      <table>
+        <thead><tr><th>File</th><th>Class under test</th><th>Must cover</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>test_data_prep.py</code></td>
+            <td><code>Normalizer</code></td>
+            <td>
+              <code>normalize()</code> lowercases, removes punctuation, removes numbers, strips whitespace — verify each step independently and in sequence.<br>
+              <code>strip_gutenberg()</code> removes header and footer markers.<br>
+              <code>sentence_tokenize()</code> returns a list with at least one element on non-empty input.<br>
+              <code>word_tokenize()</code> returns a list of strings with no empty tokens.
+            </td>
+          </tr>
+          <tr>
+            <td><code>test_model.py</code></td>
+            <td><code>NGramModel</code></td>
+            <td>
+              <code>build_vocab()</code> replaces low-frequency words with <code>&lt;UNK&gt;</code> and includes <code>&lt;UNK&gt;</code> in the vocabulary.<br>
+              <code>lookup()</code> returns a non-empty dict for a seen context.<br>
+              <code>lookup()</code> returns a non-empty dict for an unseen context (falls back to unigram).<br>
+              <code>lookup()</code> returns an empty dict only when all orders fail.<br>
+              Probabilities for any context sum to approximately 1.
+            </td>
+          </tr>
+          <tr>
+            <td><code>test_inference.py</code></td>
+            <td><code>Predictor</code></td>
+            <td>
+              <code>predict_next()</code> returns exactly <code>k</code> predictions for a seen context.<br>
+              <code>predict_next()</code> returns results sorted by probability, highest first.<br>
+              <code>predict_next()</code> handles an all-OOV context without crashing.<br>
+              <code>map_oov()</code> replaces unknown words with <code>&lt;UNK&gt;</code> and leaves known words unchanged.
+            </td>
+          </tr>
+          <tr>
+            <td><code>test_ui.py</code></td>
+            <td><code>PredictorUI</code></td>
+            <td>
+              <code>get_predictions()</code> returns a list of strings.<br>
+              <code>get_predictions()</code> handles empty input without crashing.
+            </td>
+          </tr>
+          <tr>
+            <td><code>test_evaluation.py</code></td>
+            <td><code>Evaluator</code></td>
+            <td>
+              <code>score_word()</code> returns a negative float for a seen word.<br>
+              <code>score_word()</code> returns <code>None</code> for a word with zero probability at all orders.<br>
+              <code>compute_perplexity()</code> returns a positive float greater than 1.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Run all tests with:</p>
+      <pre>pytest tests/</pre>
+
+    </section>
+
+    <!-- Appendices -->
+    <section id="appendix">
+      <h2>Appendices</h2>
+
+      <div id="appendix-di">
+        <h3>A — Dependency Injection</h3>
+
+        <p>This project uses a design pattern called <strong>dependency injection</strong>. Instead of each class creating the objects it needs internally, those objects are created once externally and passed in at construction time.</p>
+
+        <h4>Without dependency injection</h4>
+        <pre>class Predictor:
+    def __init__(self):
+        self.model = NGramModel()        # Predictor creates its own model
+        self.normalizer = Normalizer()   # and its own normalizer
+
+class PredictorUI:
+    def __init__(self):
+        self.predictor = Predictor()     # PredictorUI creates its own Predictor</pre>
+
+        <p>This creates multiple instances of the same objects, wastes memory, and makes it impossible to share state between modules.</p>
+
+        <h4>With dependency injection</h4>
+        <pre>model      = NGramModel()
+model.load("model.json", "vocab.json")   # Loaded once in main()
+
+normalizer = Normalizer()
+
+predictor  = Predictor(model, normalizer)   # Passed in
+ui         = PredictorUI(predictor)         # Passed in</pre>
+
+        <p>The same <code>model</code> and <code>normalizer</code> objects are shared. No duplication, no inconsistency, and easy to test — pass a small known model in tests without changing any class internals.</p>
+
+        <h4>Benefits</h4>
+        <ul>
+          <li><strong>Single instance</strong> — the model is loaded once and reused everywhere.</li>
+          <li><strong>No hidden dependencies</strong> — every class declares what it needs at construction; nothing is created in secret.</li>
+          <li><strong>Testability</strong> — you can inject a small, known model in your tests without touching file paths.</li>
+          <li><strong>Separation of concerns</strong> — classes do not decide how their dependencies are built, only how to use them.</li>
+        </ul>
+
+        <p>In this project, <code>main()</code> is responsible for wiring everything together. Each class is responsible only for its own logic.</p>
+      </div>
+
+      <hr>
+
+      <div id="appendix-testing">
+        <h3>B — Unit Testing</h3>
+
+        <p>A unit test is a small, isolated piece of code that verifies that one method or function does exactly what it is supposed to do. You call the method with a known input and assert that the output matches what you expect. If it does not, the test fails and tells you exactly where the problem is.</p>
+
+        <h4>Why it matters</h4>
+        <ul>
+          <li><strong>Catches bugs early.</strong> A bug found in a 10-line method is far easier to fix than one discovered when the full pipeline crashes at step 4.</li>
+          <li><strong>Makes refactoring safe.</strong> When you change how a method works internally, the tests tell you immediately whether the behavior changed.</li>
+          <li><strong>Documents behavior.</strong> A test is executable documentation — it shows exactly what a method should return for a given input.</li>
+          <li><strong>Prevents regressions.</strong> Once a bug is fixed, a test for it ensures it never comes back.</li>
+        </ul>
+
+        <h4>Simplest implementation with <code>pytest</code></h4>
+        <p>Install pytest: <code>pip install pytest</code>. Write a file named <code>test_*.py</code>. Each test is a function whose name starts with <code>test_</code>. Use <code>assert</code> to check the result.</p>
+        <pre>from src.data_prep.normalizer import Normalizer
+
+def test_normalize_lowercases():
+    n = Normalizer()
+    assert n.normalize("HELLO WORLD") == "hello world"
+
+def test_normalize_removes_punctuation():
+    n = Normalizer()
+    assert n.normalize("hello, world!") == "hello world"
+
+def test_normalize_removes_numbers():
+    n = Normalizer()
+    assert n.normalize("chapter 3") == "chapter"</pre>
+
+        <p>Run all tests from the project root:</p>
+        <pre>pytest tests/</pre>
+
+        <p>pytest prints a green dot for each passing test and a red F with a description for each failure. You do not need to write a <code>main()</code> or import anything special — pytest finds and runs all <code>test_*.py</code> files automatically.</p>
+
+        <h4>Key principle</h4>
+        <p>One test, one assertion. Test one behavior per function. If a test fails, you want to know exactly which behavior broke — not have to debug a multi-assertion test to find out.</p>
+      </div>
+
+      <hr>
+
+      <div id="appendix-exceptions">
+        <h3>C — Exception Handling</h3>
+
+        <p>When something goes wrong at runtime — a file is missing, a key is not in a dictionary, a JSON file is malformed — Python raises an <strong>exception</strong>. If the exception is not caught, the program crashes and prints a traceback that is often confusing for the user. Exception handling lets you intercept the error, print a useful message, and exit cleanly.</p>
+
+        <h4>Why it matters</h4>
+        <ul>
+          <li><strong>Better error messages.</strong> A raw Python traceback tells you where the code broke, not why the user's situation caused it. A caught exception can say: <em>"model.json not found — run the Model step first."</em></li>
+          <li><strong>Graceful failure.</strong> Instead of dumping a 20-line traceback, the program exits with a single clear sentence.</li>
+          <li><strong>Easier debugging.</strong> When you know exactly which operation failed and why, you fix it faster.</li>
+        </ul>
+
+        <h4>Simplest implementation</h4>
+        <p>Wrap the operation that might fail in a <code>try</code> block. Catch the specific exception type. Print a message that tells the user what went wrong and how to fix it.</p>
+        <pre>import json
+
+# Bad — bare except catches everything, hides the real error
+try:
+    with open(path) as f:
+        model = json.load(f)
+except:
+    print("Something went wrong")
+
+# Good — catch the specific exception, give a useful message
+try:
+    with open(path) as f:
+        model = json.load(f)
+except FileNotFoundError:
+    print(f"model.json not found at {path}. Run --step model first.")
+except json.JSONDecodeError:
+    print(f"model.json is malformed. Delete it and re-run --step model.")</pre>
+
+        <h4>Key rules</h4>
+        <ul>
+          <li>Never use bare <code>except:</code> — always name the exception type.</li>
+          <li>Catch exceptions as close to the source as possible, not at the top level of <code>main()</code> for everything.</li>
+          <li>The error message must answer two questions: <em>what failed</em> and <em>what should the user do about it</em>.</li>
+          <li>Use <code>sys.exit(1)</code> after printing the message if the program cannot continue.</li>
+        </ul>
+
+        <h4>Common exception types in this project</h4>
+        <table>
+          <thead><tr><th>Exception</th><th>When it occurs</th></tr></thead>
+          <tbody>
+            <tr><td><code>FileNotFoundError</code></td><td>A file or folder path does not exist</td></tr>
+            <tr><td><code>json.JSONDecodeError</code></td><td>A JSON file is empty or malformed</td></tr>
+            <tr><td><code>KeyError</code></td><td>A required key is missing from a dict or <code>.env</code></td></tr>
+            <tr><td><code>ValueError</code></td><td>A value has the wrong type or is out of range</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr>
+
+      <div id="appendix-logging">
+        <h3>D — Logging</h3>
+
+        <p>Logging is the practice of recording what your program is doing as it runs. Instead of using <code>print()</code> statements scattered throughout your code, you use Python's built-in <code>logging</code> module, which lets you control what gets printed, when, and where — without changing the code.</p>
+
+        <h4>Why it matters</h4>
+        <ul>
+          <li><strong>Levels of detail.</strong> You can turn verbose debug output on during development and off in production with a single config change — no deleting or commenting out print statements.</li>
+          <li><strong>Consistent format.</strong> Log messages include a timestamp and severity level automatically, making it easy to trace what happened and in what order.</li>
+          <li><strong>Separation of concerns.</strong> Business logic and diagnostic output are separate. Your methods do their work; the logger reports on it.</li>
+          <li><strong>Industry standard.</strong> Every production Python system uses logging. Learning it now builds a real professional habit.</li>
+        </ul>
+
+        <h4>Log levels</h4>
+        <table>
+          <thead><tr><th>Level</th><th>Use for</th></tr></thead>
+          <tbody>
+            <tr><td><code>DEBUG</code></td><td>Detailed internal state — loop iterations, intermediate values. Only useful while debugging.</td></tr>
+            <tr><td><code>INFO</code></td><td>Normal milestones — module started, file loaded, vocab built. Always useful.</td></tr>
+            <tr><td><code>WARNING</code></td><td>Something unexpected but recoverable — OOV word encountered, more than 20% of words skipped.</td></tr>
+            <tr><td><code>ERROR</code></td><td>Something failed — caught exception before exiting.</td></tr>
+          </tbody>
+        </table>
+
+        <h4>Simplest implementation</h4>
+        <pre>import logging
+import os
+
+# Configure once at the top of main.py, after load_dotenv()
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# Then use it anywhere in the same file or module
+logger.info("Building vocabulary...")
+logger.debug(f"Token count: {len(tokens)}")
+logger.warning(f"OOV word encountered: {word}")
+logger.error(f"Failed to load model: {e}")</pre>
+
+        <p>In other modules (<code>normalizer.py</code>, <code>ngram_model.py</code>, etc.), create a module-level logger the same way and use it instead of <code>print()</code>:</p>
+        <pre>import logging
+logger = logging.getLogger(__name__)
+
+class NGramModel:
+    def build_vocab(self, token_file):
+        logger.info("Building vocabulary from %s", token_file)
+        ...</pre>
+
+        <h4>Key principle</h4>
+        <p>Configure logging once in <code>main()</code>. Every other module just calls <code>logging.getLogger(__name__)</code> and uses it. The configuration — level, format, output destination — is controlled in one place.</p>
+      </div>
+
+    </section>
+  </main>
+</div>
+</body>
+</html>

@@ -39,7 +39,8 @@ st.markdown("Automated AI grading system for the ADI Egypt N-Gram Capstone Proje
 st.sidebar.header("Configuration")
 repo_url = st.sidebar.text_input(
     "GitHub Repository URL",
-    placeholder="https://github.com/adhammo/ngrams",
+    placeholder="https://github.com/username/ngram-predictor",
+    value="https://github.com/adhammo/ngrams",
 )
 api_key = st.sidebar.text_input(
     "Gemini API Key",

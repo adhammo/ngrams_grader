@@ -1,4 +1,5 @@
 import sys
+import os
 from pathlib import Path
 import streamlit as st
 
@@ -37,10 +38,12 @@ st.markdown("Automated AI grading system for the ADI Egypt N-Gram Capstone Proje
 
 st.sidebar.header("Configuration")
 repo_url = st.sidebar.text_input(
-    "GitHub Repository URL", placeholder="https://github.com/username/ngram-predictor"
+    "GitHub Repository URL",
+    placeholder="https://github.com/adhammo/ngrams",
 )
 api_key = st.sidebar.text_input(
     "Gemini API Key",
+    value=os.getenv("GEMINI_KEY", ""),
     type="password",
     help="Required for Design Quality and General Coding evaluation.",
 )
@@ -80,7 +83,7 @@ if st.sidebar.button("Run Grader", type="primary"):
                 for crit, val in criteria.items():
                     # Determine if LLM-based grading was successful for this criterion
                     include_score = (crit not in LLM_GRADED_CRITERIA) or llm_success
-                    
+
                     if include_score:
                         total_score += val
                         # Only include in the denominator if it's NOT Extra Credit
@@ -134,17 +137,24 @@ if st.sidebar.button("Run Grader", type="primary"):
                         st.markdown(f"- {crit}")
                     with col2:
                         max_val = RUBRIC_STRUCTURE.get(category, {}).get(crit, 0)
-                        
+
                         # Determine if this specific criterion was skipped
                         is_skipped = not llm_success and crit in LLM_GRADED_CRITERIA
                         pts_display = f"**{val} / {max_val} pts**"
-                        
+
                         if is_skipped:
-                            st.markdown(f"{pts_display} &nbsp;&nbsp; :orange[(SKIPPED)]")
-                        elif crit == "runs end-to-end without errors (python main.py --step all)":
+                            st.markdown(
+                                f"{pts_display} &nbsp;&nbsp; :orange[(SKIPPED)]"
+                            )
+                        elif (
+                            crit
+                            == "runs end-to-end without errors (python main.py --step all)"
+                        ):
                             reason_msg = reasoning.get(category, {}).get(crit, "")
                             if reason_msg and "woman" in reason_msg.lower():
-                                st.markdown(f"{pts_display} &nbsp;&nbsp; :green[+ correct answer]")
+                                st.markdown(
+                                    f"{pts_display} &nbsp;&nbsp; :green[+ correct answer]"
+                                )
                             else:
                                 st.markdown(pts_display)
                         else:

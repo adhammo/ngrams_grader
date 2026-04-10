@@ -376,9 +376,12 @@ class GraderEngine:
             )
             if venv_result.returncode != 0:
                 self.log(
-                    f"Failed to create virtual environment. STDERR: {venv_result.stderr}",
+                    f"Failed to create virtual environment (exit code {venv_result.returncode}).",
                     level=2,
                 )
+                if venv_result.stderr:
+                    self.log(f"STDERR: {venv_result.stderr.strip()}", level=2)
+                    
                 self.reasoning["Project"][
                     "runs end-to-end without errors (python main.py --step all)"
                 ] = f"Failed to create venv: {venv_result.stderr}"
@@ -386,6 +389,7 @@ class GraderEngine:
                     "runs end-to-end without errors (python main.py --step all)"
                 ] = 0
                 return
+            self.log("Virtual environment created successfully.", level=2)
 
             # Determine venv python executable
             if os.name == "nt":
@@ -397,20 +401,32 @@ class GraderEngine:
             req_file = base / "requirements.txt"
             if req_file.exists():
                 self.log("Installing dependencies into virtual environment...", level=2)
-                pip_result = subprocess.run(
+                process = subprocess.Popen(
                     [venv_python, "-m", "pip", "install", "-r", "requirements.txt"],
                     cwd=str(base),
-                    capture_output=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                     text=True,
+                    bufsize=1,
+                    universal_newlines=True,
                 )
-                if pip_result.returncode != 0:
+                
+                if process.stdout:
+                    for line in process.stdout:
+                        clean_line = line.strip()
+                        if clean_line:
+                            self.log(clean_line, level=3)
+                
+                process.wait()
+
+                if process.returncode != 0:
                     self.log(
-                        f"Failed to install dependencies. STDERR: {pip_result.stderr}",
+                        f"Failed to install dependencies (exit code {process.returncode}).",
                         level=2,
                     )
                     self.reasoning["Project"][
                         "runs end-to-end without errors (python main.py --step all)"
-                    ] = f"Failed to install requirements.txt: {pip_result.stderr}"
+                    ] = "Failed to install requirements.txt. Check log for details."
                     self.scores["Project"][
                         "runs end-to-end without errors (python main.py --step all)"
                     ] = 0

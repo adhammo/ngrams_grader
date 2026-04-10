@@ -381,7 +381,7 @@ class GraderEngine:
                 )
                 if venv_result.stderr:
                     self.log(f"STDERR: {venv_result.stderr.strip()}", level=2)
-                    
+
                 self.reasoning["Project"][
                     "runs end-to-end without errors (python main.py --step all)"
                 ] = f"Failed to create venv: {venv_result.stderr}"
@@ -402,7 +402,15 @@ class GraderEngine:
             if req_file.exists():
                 self.log("Installing dependencies into virtual environment...", level=2)
                 process = subprocess.Popen(
-                    [venv_python, "-m", "pip", "install", "-r", "requirements.txt"],
+                    [
+                        venv_python,
+                        "-m",
+                        "pip",
+                        "install",
+                        "-r",
+                        "requirements.txt",
+                        "-vvv",
+                    ],
                     cwd=str(base),
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
@@ -410,13 +418,13 @@ class GraderEngine:
                     bufsize=1,
                     universal_newlines=True,
                 )
-                
+
                 if process.stdout:
                     for line in process.stdout:
                         clean_line = line.strip()
                         if clean_line:
                             self.log(clean_line, level=3)
-                
+
                 process.wait()
 
                 if process.returncode != 0:

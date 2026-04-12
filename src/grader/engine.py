@@ -409,7 +409,6 @@ class GraderEngine:
                         "install",
                         "-r",
                         "requirements.txt",
-                        "-vvv",
                     ],
                     cwd=str(base),
                     stdout=subprocess.PIPE,
@@ -425,7 +424,7 @@ class GraderEngine:
                         if clean_line:
                             self.log(clean_line, level=3)
 
-                process.wait()
+                process.wait(timeout=60)
 
                 if process.returncode != 0:
                     self.log(

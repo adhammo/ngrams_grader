@@ -401,7 +401,7 @@ class GraderEngine:
             req_file = base / "requirements.txt"
             if req_file.exists():
                 self.log("Installing dependencies into virtual environment...", level=2)
-                process = subprocess.Popen(
+                result = subprocess.run(
                     [
                         venv_python,
                         "-m",
@@ -411,26 +411,17 @@ class GraderEngine:
                         "requirements.txt",
                     ],
                     cwd=str(base),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
+                    capture_output=True,
                     text=True,
-                    bufsize=1,
-                    universal_newlines=True,
                 )
 
-                if process.stdout:
-                    for line in process.stdout:
-                        clean_line = line.strip()
-                        if clean_line:
-                            self.log(clean_line, level=3)
-
-                process.wait(timeout=60)
-
-                if process.returncode != 0:
+                if result.returncode != 0:
                     self.log(
-                        f"Failed to install dependencies (exit code {process.returncode}).",
+                        f"Failed to install dependencies (exit code {result.returncode}).",
                         level=2,
                     )
+                    if result.stderr:
+                        self.log(f"Errors: {result.stderr.strip()}", level=3)
                     self.reasoning["Project"][
                         "runs end-to-end without errors (python main.py --step all)"
                     ] = "Failed to install requirements.txt. Check log for details."
@@ -454,7 +445,7 @@ class GraderEngine:
                     capture_output=True,
                     text=True,
                     input=f"{test_sentence}\nquit\n",
-                    timeout=60,
+                    timeout=120,
                 )
                 if result.returncode == 0:
                     self.scores["Project"][

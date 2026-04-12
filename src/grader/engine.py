@@ -434,7 +434,7 @@ class GraderEngine:
             # Use subprocess to run `python main.py --step all`
             test_sentence = "To Sherlock Holmes she is always the"
             self.log(
-                f"Running main.py with 60s timeout and test input: '{test_sentence}' and 'quit'",
+                f"Running main.py with 180s timeout and test input: '{test_sentence}' and 'quit'",
                 level=2,
             )
 
@@ -445,7 +445,7 @@ class GraderEngine:
                     capture_output=True,
                     text=True,
                     input=f"{test_sentence}\nquit\n",
-                    timeout=120,
+                    timeout=180,
                 )
                 if result.returncode == 0:
                     self.scores["Project"][

@@ -318,8 +318,8 @@ class GraderEngine:
             client = genai.Client(api_key=self.api_key)
             prompt = LLM_RUBRIC_PROMPT + f"\n\nStudent Source Code:\n{code_content}"
             response = client.models.generate_content(
-                model="gemini-3.1-flash-lite-preview",
-                # model="gemini-3-flash-preview",
+                # model="gemini-3.1-flash-lite-preview",
+                model="gemini-3-flash-preview",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json"
